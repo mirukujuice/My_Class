@@ -426,16 +426,16 @@ void GameScene::playingGame()
     int locY = 100 * 1.1;
     int locX = random % 85 + 10;
 
-    if (random % 5 == 0)
+ //   if (random % 5 == 0)
         // 虫を落とす
         createBug(ccp(winSize.width * locX / 100, winSize.height * locY / 100));
         //createShot(ccp(winSize.width * locX / 100, winSize.height * locY / 100));
-    else
+ //   else
         // リンゴを落とす
         createApple(ccp(winSize.width * locX / 100, winSize.height * locY / 100));
 
     // 呼び出し時間変更
-    m_dropTime = m_dropTime * 0.983;
+    m_dropTime = m_dropTime * 0.990;
     this->schedule(schedule_selector(GameScene::playingGame), m_dropTime);
 }
 
@@ -644,112 +644,81 @@ void GameScene::update(float dt)
 
     // worldを更新する
     world->Step(dt, velocityIterations, positionIterations);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //ここで当たり判定などの設定をする
 
-    // 全リンゴ
+    // 全リンゴの配列を作成
 	CCArray* appleArr = CCArray::create();
-	// 全ショット
+	// 全ショットの配列を作成
 	CCArray* shotArr = CCArray::create();
+	// 全バグの配列を作成
+	CCArray* bugArr = CCArray::create();
 	// 全オブジェクトを取得
 	CCArray* objArr = this->m_pChildren;
 
-	// 全リンゴ、全ショットを取得
+	// 全リンゴ、全ショット、全バグを取得
 	for (int i = 0; i < objArr->count(); i++) {
 		// 要素を一つ取得
 		CCObject* obj = objArr->objectAtIndex(i);
 		CCSprite* spriteObj = (CCSprite *)obj;
+
 		if (spriteObj->getTag() == kTag_Apple) {	// リンゴの場合
 			appleArr->addObject(obj);
-		} else if (spriteObj->getTag() == kTag_Shot) {
+		} else if (spriteObj->getTag() == kTag_Shot) {    // ショットの場合
 			shotArr->addObject(obj);
+		} else if (spriteObj->getTag() == kTag_Bug) {    // バグの場合
+			bugArr->addObject(obj);
 		}
 	}
 
 	// リンゴを順に取得
 	for (int i = 0; i < appleArr->count(); i++) {
 		CCSprite* apple = (CCSprite*)appleArr->objectAtIndex(i);
-		for (int j = 0; j < shotArr->count(); j++) {  // ショットを順に取得
+		// ショットを順に取得
+		for (int j = 0; j < shotArr->count(); j++) {
 			CCSprite* shot = (CCSprite*)shotArr->objectAtIndex(j);
+			// バグを順に取得
+			for (int k = 0; k < bugArr->count(); k++) {
+						CCSprite* bug = (CCSprite*)bugArr->objectAtIndex(k);
 
 			// リンゴとショットとのあたり判定
 			if(apple->boundingBox().intersectsRect(shot->boundingBox()))
 			{
-				CCLog("HIT!");
-				apple->removeFromParent();
-				shot->removeFromParent();
+			// リンゴとショットが当たった時の処理
+				CCLog("APPLEHIT!");
+				// エフェクト作成
+				CCPoint appleSize = apple->getPosition();
+				CCParticleSystemQuad* particle1 = CCParticleSystemQuad::create("star1.plist");
+				particle1->setPosition(ccp(appleSize.x, appleSize.y));
+				particle1->setAutoRemoveOnFinish(true);
+				this->addChild(particle1);
+				//apple->removeFromParent();
+				//shot->removeFromParent();
+				apple->removeFromParentAndCleanup(true);
+				shot->removeFromParentAndCleanup(true);
 			}
+
+			if(bug->boundingBox().intersectsRect(shot->boundingBox()))
+			{
+			// バグとショットが当たった時の処理
+				CCLog("BUGHIT!");
+				// エフェクト作成
+				CCPoint bugSize = bug->getPosition();
+				CCParticleSystemQuad* particle2 = CCParticleSystemQuad::create("star2.plist");
+				particle2->setPosition(ccp(bugSize.x, bugSize.y));
+				particle2->setAutoRemoveOnFinish(true);
+				this->addChild(particle2);
+				//bug->removeFromParent();
+				//shot->removeFromParent();
+				bug->removeFromParentAndCleanup(true);
+				shot->removeFromParentAndCleanup(true);
+			}
+
+		  }
 		}
 	}
-
-    // CCLog("update error?");
-    // CCSprite* apple = (CCSprite *)this->getChildByTag(kTag_Apple);
-
-    // if (apple == NULL) {
-    	// CCLog("apple is null.");
-    // } else {
-    		/*
-    		CCSprite* oneApple = (CCSprite*)objectArr->objectAtIndex(i);
-    		if (oneApple != NULL) {
-				if(oneApple->getTag() == kTag_Apple) {	// リンゴの場合
-					//CCLog("i am an apple!");
-					CCSprite* myCat = (CCSprite*)this->getChildByTag(kTag_Cat);
-					if(myCat->boundingBox().containsPoint(oneApple->getPosition()))
-					{
-						CCLog("HIT!");
-					}
-				} else {	// リンゴじゃない場合
-					//CCLog("Noooooo!");
-				}
-			}
-			*/
-
-    	/*
-    	CCSprite* oneApple = (CCSprite*)objectArr->randomObject();
-
-    	if (oneApple != NULL) {
-    		// CCLog("%f", oneApple->getPosition().y);
-    		if(oneApple->getTag() == kTag_Apple) {
-    			CCLog("i am an apple!");
-    		} else {
-    			CCLog("Noooooo!");
-    		}
-    	}
-    	*/
-
-    	// CCLog("count = %d", (CCSprite *)this->m_pChildren->count());
-
-    	// CCLog("%f %f", apple->get )
-    // }
-/*
-    // 当たり判定
-	CCSprite* shot = (CCSprite *)this->getChildByTag(kTag_Shot);
-	if (shot == NULL) return;
-	CCRect shotRect = CCRectMake(
-								shot->getPosition().x - (shot->getContentSize().width/2),
-								shot->getPosition().y - (shot->getContentSize().height/2),
-								shot->getContentSize().width,
-								shot->getContentSize().height);
-
-	CCSprite* apple = (CCSprite *)this->getChildByTag(kTag_Apple);
-	if(apple ==NULL) return;
-	CCRect appleRect = CCRectMake(
-								apple->getPosition().x - (apple->getContentSize().width/2),
-								apple->getPosition().y - (apple->getContentSize().height/2),
-								apple->getContentSize().width,
-								apple->getContentSize().height);
-*/
-
-/*
-    CCRect rect = pApple->getRectByTag(kTag_Apple);
-//    CCRect rect = pShot->boundingBox();
-    CCrect rect2 = pApple->boundingBox();
-		if (rect.intersectsRect(rect2)
-		{
-			CCLog("ろぐろぐ");
-			//this->removeChildByTag(kTag_Apple);
-			//this->removeChild(shot, true);
-		}
-*/
 }
+
 /*
     // world内の全オブジェクトをループする
     for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())
